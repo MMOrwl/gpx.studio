@@ -23,7 +23,7 @@ async function exportFiles(fileIds: string[], exclude: string[]) {
         if (firstFileId != null) {
             const file = fileStateCollection.getFile(firstFileId);
             if (file) {
-                exportFile(file, exclude);
+                await exportFile(file, exclude);
             }
         }
     }
@@ -41,8 +41,44 @@ export async function exportAllFiles(exclude: string[]) {
     await exportFiles(get(settings.fileOrder), exclude);
 }
 
-function exportFile(file: GPXFile, exclude: string[]) {
-    const blob = new Blob([buildGPX(file, exclude)], { type: 'application/gpx+xml' });
+async function exportFile(file: GPXFile, exclude: string[]) {
+    const gpxText = buildGPX(file, exclude);
+
+    // Bridge-Mode: wenn save_url als URL-Param gesetzt ist, POST an die URL
+    // und danach zu return_url navigieren. Fuer externe Tools wie conciergeOS,
+    // die die bearbeitete GPX direkt empfangen wollen statt ueber den
+    // lokalen Download-Umweg.
+    if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        const saveUrl = params.get('save_url');
+        const returnUrl = params.get('return_url');
+        if (saveUrl) {
+            try {
+                const res = await fetch(saveUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/gpx+xml' },
+                    body: gpxText,
+                });
+                if (res.ok) {
+                    if (returnUrl) {
+                        window.location.href = returnUrl;
+                    }
+                    return;
+                }
+                console.error('Bridge save failed', res.status, await res.text());
+                alert(
+                    'Speichern an externe URL fehlgeschlagen. GPX wird stattdessen lokal heruntergeladen.'
+                );
+            } catch (e) {
+                console.error('Bridge save error', e);
+                alert(
+                    'Speichern an externe URL fehlgeschlagen (Netzwerk). GPX wird stattdessen lokal heruntergeladen.'
+                );
+            }
+        }
+    }
+
+    const blob = new Blob([gpxText], { type: 'application/gpx+xml' });
     FileSaver.saveAs(blob, `${file.metadata.name}.gpx`);
 }
 
