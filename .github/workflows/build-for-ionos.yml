@@ -1,0 +1,60 @@
+name: Build for IONOS
+
+# Baut website/build/ in der GitHub-Cloud und stellt das Ergebnis als
+# herunterladbares ZIP-Artefakt bereit. So kann ein Nutzer ohne lokales
+# Node-Setup den Fork updaten und via FileZilla auf IONOS deployen.
+#
+# Triggered bei Push auf den Bridge-Branch oder manuell via GitHub-UI
+# (Actions -> Build for IONOS -> Run workflow).
+#
+# Vor dem ersten Lauf im Fork-Repo einmalig setzen:
+#   Settings -> Secrets and variables -> Actions -> New repository secret
+#     Name:  PUBLIC_MAPTILER_KEY
+#     Value: <dein MapTiler-Free-Tier-Key>
+
+on:
+    push:
+        branches:
+            - conciergeos/save-url-bridge
+    workflow_dispatch:
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v5
+
+            - name: Install Node.js
+              uses: actions/setup-node@v6
+              with:
+                  node-version: 24
+                  cache: npm
+                  cache-dependency-path: |
+                      gpx/package-lock.json
+                      website/package-lock.json
+
+            - name: Install + build gpx library
+              run: |
+                  npm install --prefix gpx
+                  npm run build --prefix gpx
+
+            - name: Install website dependencies
+              run: npm install --prefix website
+
+            - name: Write .env
+              run: |
+                  echo "PUBLIC_MAPTILER_KEY=${{ secrets.PUBLIC_MAPTILER_KEY }}" > website/.env
+
+            - name: Build website
+              env:
+                  BASE_PATH: ''
+              run: npm run build --prefix website
+
+            - name: Upload build artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  name: gpx-edit-build
+                  path: website/build/
+                  retention-days: 30
+                  if-no-files-found: error

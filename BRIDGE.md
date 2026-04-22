@@ -33,7 +33,30 @@ User editiert, klickt Export (Patch greift hier):
 gpx.studio nutzt `@sveltejs/adapter-static` → reiner Static-Export,
 keine Node-SSR nötig. Das passt auf IONOS Webhosting Plus.
 
-### Vorbereitung (einmalig lokal auf dem Mac)
+### Build via GitHub Actions (empfohlen, kein lokales Node)
+
+Einmalige Einrichtung:
+
+1. MapTiler-Key holen unter
+   <https://cloud.maptiler.com/auth/widget?next=https://cloud.maptiler.com/maps/>
+   (Free-Tier reicht).
+2. Im Fork-Repo: Settings → Secrets and variables → Actions → New
+   repository secret
+   - Name: `PUBLIC_MAPTILER_KEY`
+   - Value: dein MapTiler-Key
+
+Build anstoßen:
+
+- Entweder Push auf `conciergeos/save-url-bridge` (Workflow läuft automatisch)
+- Oder manuell: GitHub-UI → Actions → "Build for IONOS" → Run workflow
+
+Artefakt abholen:
+
+- Nach ~2 Minuten ist der Run grün
+- Actions-Tab → neuesten Run öffnen → unter "Artifacts" liegt `gpx-edit-build.zip`
+- Runterladen, entpacken
+
+### Build lokal (Alternative, braucht Node)
 
 ```bash
 # gpx-Library bauen
@@ -41,25 +64,14 @@ cd gpx
 npm install
 npm run build
 
-# Website-Build vorbereiten
+# Website bauen
 cd ../website
 echo PUBLIC_MAPTILER_KEY={DEIN-MAPTILER-KEY} > .env
 npm install
-```
-
-MapTiler Key holst du unter
-<https://cloud.maptiler.com/auth/widget?next=https://cloud.maptiler.com/maps/>
-(Free-Tier reicht).
-
-### Build
-
-```bash
-cd website
 npm run build
 ```
 
-Ergebnis: Ordner `website/build/` mit statischen Dateien (HTML, JS, CSS,
-Assets). Das ist dein Deploy-Artefakt.
+Ergebnis: Ordner `website/build/` mit statischen Dateien.
 
 ### Auf IONOS hochladen
 
