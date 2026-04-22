@@ -8,5 +8,16 @@
 # Rewrite-Regeln, keine Redirect-Loop-Gefahr.
 Options +MultiViews -Indexes
 
+# Wenn /foo/ (mit Trailing-Slash) verlangt wird und der Ordner kein
+# index.html hat -> Slash strippen und mit 301 auf /foo verweisen.
+# MultiViews loest /foo dann zu /foo.html auf. Die Kondition
+# "!-f fuer index.html" verhindert Loops bei Routen, die tatsaechlich
+# als /foo/index.html existieren.
+RewriteEngine On
+RewriteCond %{REQUEST_URI} !^/$
+RewriteCond %{REQUEST_URI} /$
+RewriteCond %{REQUEST_FILENAME}/index.html !-f
+RewriteRule ^(.+)/$ /$1 [R=301,L]
+
 # Eigene 404-Seite aus dem SvelteKit-Build
 ErrorDocument 404 /404.html
