@@ -1,24 +1,12 @@
-# Apache-Rewrite fuer SvelteKit adapter-static auf IONOS.
+# Apache-Konfiguration fuer SvelteKit adapter-static auf IONOS.
 #
-# Build produziert flache HTML-Dateien (app.html, embed.html, 404.html, ...).
-# Apache serviert direkt nur den exakten Pfad - deshalb braucht es:
-#   /app      -> /app.html   (.html anhaengen, wenn Datei existiert)
-#   /app/     -> /app        (Trailing-Slash strippen)
-#   alles andere nicht-existente -> 404.html
+# adapter-static produziert flache HTML-Dateien (app.html, embed.html,
+# 404.html, ...). Apache muss also "/app" mit "app.html" beantworten.
+#
+# MultiViews macht das automatisch: bei unbekannter Datei /foo probiert
+# Apache nacheinander foo.html, foo.htm usw. Funktioniert ohne
+# Rewrite-Regeln, keine Redirect-Loop-Gefahr.
+Options +MultiViews -Indexes
 
-RewriteEngine On
-
-# 1) Trailing-Slash auf Non-Root strippen
-RewriteCond %{REQUEST_URI} !^/$
-RewriteRule ^(.+)/$ /$1 [R=301,L]
-
-# 2) Wenn die URL als .html-Datei existiert, diese servieren
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{DOCUMENT_ROOT}%{REQUEST_URI}.html -f
-RewriteRule ^(.*)$ /$1.html [L]
-
-# 3) Keine Directory-Listings
-Options -Indexes
-
-# 4) Eigene 404-Seite aus dem SvelteKit-Build
+# Eigene 404-Seite aus dem SvelteKit-Build
 ErrorDocument 404 /404.html
